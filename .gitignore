@@ -1,2 +1,6 @@
 .keys/
 bash_scratch.txt
+.terraform*
+*.tfstate*
+notes.md
+test_file.txt 
