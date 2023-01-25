@@ -9,3 +9,9 @@ variable "profile" {
     default = "service_wp"
     type = string
 }
+
+variable "bucket" {
+    description = "Name of S3 bucket; must be globally unique"
+    default = "weather-data-kpde"
+    type = string
+}

@@ -15,20 +15,10 @@ provider "aws" {
   profile = var.profile #"service_wp"
 }
 
-# example from terraform aws tutorial
-# resource "aws_instance" "app_server" {
-#   ami           = "ami-0b5eea76982371e91"
-#   instance_type = "t2.micro"
-
-#   tags = {
-#     Name = "ExampleAppServerInstance"
-#   }
-# }
-
 # s3 bucket for data lake
 # weather-data-kpde
 resource "aws_s3_bucket" "bucket_data_lake" {
-  bucket = "weather-data-kpde"
+  bucket = var.bucket #"weather-data-kpde"
 }
 
 resource "aws_s3_bucket_public_access_block" "public_access_data_lake" {
