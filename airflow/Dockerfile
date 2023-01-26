@@ -20,6 +20,10 @@ RUN TMP_DIR="$(mktemp -d)" \
  && rm -rf "${TMP_DIR}" \
  && aws --version
 
+# RUN mkdir "${AIRFLOW_HOME}/data/" \
+#  && chown "default:default" "${AIRFLOW_HOME}/data/"
+
 WORKDIR $AIRFLOW_HOME
 
 USER $AIRFLOW_UID
+
