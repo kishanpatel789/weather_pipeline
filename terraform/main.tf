@@ -18,7 +18,8 @@ provider "aws" {
 # s3 bucket for data lake
 # weather-data-kpde
 resource "aws_s3_bucket" "bucket_data_lake" {
-  bucket = var.bucket #"weather-data-kpde"
+  bucket        = var.bucket #"weather-data-kpde"
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_public_access_block" "public_access_data_lake" {
@@ -52,12 +53,12 @@ resource "aws_s3_bucket_lifecycle_configuration" "lifecycle_data_lake" {
     status = "Enabled"
 
     transition {
-      days = 30
+      days          = 30
       storage_class = "STANDARD_IA"
     }
 
     transition {
-      days = 60
+      days          = 60
       storage_class = "GLACIER"
     }
 
