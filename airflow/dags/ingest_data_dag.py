@@ -31,13 +31,13 @@ def convert_to_parquet(file_csv, file_parquet, dir_data):
         logging.error('Can only accept .csv files for conversion.')
         return
     
-    table = pv.read_csv(dir_data / file_csv)
-    pq.write_table(table, dir_data / file_parquet)
+    table = pv.read_csv(dir_data / 'csv' / file_csv)
+    pq.write_table(table, dir_data / 'parquet' / file_parquet)
 
 def process_csv_files(dir_data):
     """Parse data directory and convert to parquet"""
 
-    for file_csv in [f for f in os.listdir(dir_data) if f.endswith('.csv')]:
+    for file_csv in [f for f in os.listdir(dir_data / 'csv') if f.endswith('.csv')]:
         file_parquet = file_csv.replace('.csv', '.parquet')
 
         convert_to_parquet(file_csv, file_parquet, dir_data)
@@ -90,12 +90,12 @@ with DAG(
 
     download_dataset_task = BashOperator(
         task_id='download_dataset_task',
-        bash_command=f'cd {AIRFLOW_HOME} && mkdir -p data/ && cd data/ && curl -sSLO {dataset_url}'
+        bash_command=f'cd {AIRFLOW_HOME} && mkdir -p data/csv data/parquet && cd data/csv && curl -sSLO {dataset_url}'
     )
 
     unzip_download_task = BashOperator(
         task_id='unzip_download_task',
-        bash_command=f'cd {AIRFLOW_HOME}/data && tar xzvf {dataset_file} && rm {dataset_file}'
+        bash_command=f'cd {AIRFLOW_HOME}/data/csv && tar xzvf {dataset_file} && rm {dataset_file}'
     )
 
     format_to_parquet_task = PythonOperator(
@@ -111,7 +111,7 @@ with DAG(
         python_callable=upload_parquet_files_to_s3,
         op_kwargs={
             'bucket': BUCKET,
-            'dir_data': dir_data,
+            'dir_data': dir_data / 'parquet',
         },
     )
 
