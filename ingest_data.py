@@ -8,13 +8,13 @@ from pathlib import Path
 import os
 
 # %%
-def convert_to_parquet(file_csv, file_parquet, dir_data=Path('data/')):
+def convert_to_parquet(file_csv, file_parquet, dir_data=Path('data/raw/')):
     if not file_csv.endswith('.csv'):
         logging.error('Can only accept .csv files for conversion.')
         return
     
-    table = pv.read_csv(dir_data / file_csv)
-    pq.write_table(table, dir_data / file_parquet)
+    table = pv.read_csv(dir_data / 'csv' / file_csv)
+    pq.write_table(table, dir_data / 'parquet' / file_parquet)
 
 
 # %%
@@ -50,13 +50,13 @@ def upload_file_to_s3(file_name, bucket, object_name=None):
     
 # %%
 BUCKET = 'weather-data-kpde'
-dir_data = Path('data/')
-file_csv = 'AQC00914594.csv'
+dir_data = Path('data/raw/')
+# file_csv = 'AQC00914594.csv'
 
-for file_csv in [f for f in os.listdir('data') if f.endswith('.csv')]:
+for file_csv in [f for f in os.listdir(dir_data / 'csv') if f.endswith('.csv')]:
     file_parquet = file_csv.replace('.csv', '.parquet')
 
     convert_to_parquet(file_csv, file_parquet)
 
-    upload_file_to_s3(dir_data/file_parquet, BUCKET, f'raw/{file_parquet}')
+    # upload_file_to_s3(dir_data/file_parquet, BUCKET, f'raw/{file_parquet}')
 # %%
