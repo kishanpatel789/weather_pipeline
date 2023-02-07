@@ -7,18 +7,25 @@ from pyspark.context import SparkContext
 from pyspark.sql.types import StructType, StructField, StringType, LongType, DateType, DoubleType
 from pyspark.sql.functions import col, lit, array, explode, arrays_zip, posexplode,     sum as sum_, max as max_, min as min_, year, month
 
-import os
-os.environ["AWS_PROFILE"] = "service_wp"
+# === local spark settings ===
+# import os
+# os.environ["AWS_PROFILE"] = "service_wp"
 
-# set spark configuration
-conf = SparkConf() \
-    .setAppName('process-weather-stations') \
-    .set('spark.jars.packages', 'org.apache.hadoop:hadoop-aws:3.3.2') \
-    .set('spark.hadoop.fs.s3a.impl', 'org.apache.hadoop.fs.s3a.S3AFileSystem') \
-    .set('spark.hadoop.fs.s3a.aws.credentials.provider', 'com.amazonaws.auth.profile.ProfileCredentialsProvider')
+# # set spark configuration
+# conf = SparkConf() \
+#     .setAppName('process-weather-stations') \
+#     .set('spark.jars.packages', 'org.apache.hadoop:hadoop-aws:3.3.2') \
+#     .set('spark.hadoop.fs.s3a.impl', 'org.apache.hadoop.fs.s3a.S3AFileSystem') \
+#     .set('spark.hadoop.fs.s3a.aws.credentials.provider', 'com.amazonaws.auth.profile.ProfileCredentialsProvider')
 
-# instantiate Spark session
-spark = SparkSession.builder.config(conf=conf).getOrCreate()
+# # instantiate Spark session
+# spark = SparkSession.builder.config(conf=conf).getOrCreate()
+# === ===
+
+# === aws emr settings ===
+spark = SparkSession.builder.appName('process-weather-stations').getOrCreate()
+
+# === ===
 
 # define schema and read parquet files
 station_schema = StructType([StructField('STATION', StringType(), True),
@@ -179,6 +186,6 @@ df_out = (df_out.replace({-9999: None}, subset=['Val'])
 df_out = df_out.withColumn('year', year('DATE'))
 
 # write parquet files
-df_out.write.mode('overwrite').parquet('s3a://weather-data-kpde/out/')
+df_out.coalesce(100).write.mode('overwrite').parquet('s3a://weather-data-kpde/out/')
 
 spark.stop()

@@ -81,7 +81,7 @@ default_args = {
 
 with DAG(
     dag_id='ingest_data_dag',
-    schedule_interval='@once',
+    schedule_interval=None,
     default_args=default_args,
     catchup=False,
     max_active_runs=1,
