@@ -53,6 +53,7 @@ BUCKET = 'weather-data-kpde'
 dir_data = Path('data/raw/')
 # file_csv = 'AQC00914594.csv'
 
+# %%
 for file_csv in [f for f in os.listdir(dir_data / 'csv') if f.endswith('.csv')]:
     file_parquet = file_csv.replace('.csv', '.parquet')
 
