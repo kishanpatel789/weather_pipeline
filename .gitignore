@@ -10,3 +10,4 @@ airflow/logs
 __pycache__
 *.swp
 *.ipynb_checkpoints
+scratch/
