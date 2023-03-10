@@ -1,25 +1,27 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.amazon.aws.operators.redshift import RedshiftSQLOperator
+from airflow.providers.amazon.aws.operators.redshift_sql import RedshiftSQLOperator
 
 from airflow.models.connection import Connection
 import json
 from datetime import datetime
 import os
 
-# c = Connection(
-#     conn_type="redshift",
-#     extra=json.dumps(
-#         {
-#             "iam": True,
-#             "db_user": "awsuser",
-#             "database": "dev",
-#             "cluster_identifier": "redshift-cluster-1",
-#             "profile": "service_wp",
-#         }
-#     ),
-# )
+c = Connection(
+    conn_id='redshift_conn',
+    conn_type="redshift",
+    extra=json.dumps(
+        {
+            "iam": True,
+            "db_user": "awsuser",
+            "database": "dev",
+            "cluster_identifier": "redshift-cluster-1",
+            "profile": "service_wp",
+            "region": "us-east-1"
+        }
+    ),
+)
 
 BUCKET = os.environ.get('AWS_BUCKET')
 AIRFLOW_HOME = os.environ.get('AIRFLOW_HOME', '/opt/airflow/')
@@ -28,6 +30,7 @@ AIRFLOW_HOME = os.environ.get('AIRFLOW_HOME', '/opt/airflow/')
 with DAG(dag_id="redshift", start_date=datetime(2023, 1, 1), schedule_interval=None, tags=['example']) as dag:
     setup__task_create_table = RedshiftSQLOperator(
         task_id='setup__create_table',
+        redshift_connection_id='redshift_conn',
         sql="""
             CREATE TABLE IF NOT EXISTS fruit (
             fruit_id INTEGER,
