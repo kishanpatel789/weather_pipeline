@@ -27,7 +27,7 @@ ENV SPARK_DIR=/home/spark
 ENV JAVA_HOME="${SPARK_DIR}/jdk-11.0.2"
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-ENV SPARK_HOME="${SPARK_DIR}/spark-3.3.1-bin-hadoop3"
+ENV SPARK_HOME="${SPARK_DIR}/spark-3.3.2-bin-hadoop3"
 ENV PATH="${SPARK_HOME}/bin:${PATH}"
 
 RUN mkdir -p ${SPARK_DIR} \
@@ -37,9 +37,10 @@ RUN mkdir -p ${SPARK_DIR} \
  && rm openjdk-11.0.2_linux-x64_bin.tar.gz
 
 RUN cd "${SPARK_DIR}" \
- && curl -fLO https://dlcdn.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-hadoop3.tgz \
- && tar xzfv spark-3.3.1-bin-hadoop3.tgz \
- && rm spark-3.3.1-bin-hadoop3.tgz 
+ && curl -fLO https://dlcdn.apache.org/spark/spark-3.3.2/spark-3.3.2-bin-hadoop3.tgz \
+#  && curl -fLO https://dlcdn.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-hadoop3.tgz \
+ && tar xzfv spark-3.3.2-bin-hadoop3.tgz \
+ && rm spark-3.3.2-bin-hadoop3.tgz 
 
 ENV PYTHONPATH="${SPARK_HOME}/python/:$PYTHONPATH"
 ENV PYTHONPATH="${SPARK_HOME}/python/lib/py4j-0.10.9.5-src.zip:$PYTHONPATH"
