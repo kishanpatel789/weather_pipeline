@@ -31,9 +31,12 @@ AIRFLOW_HOME = os.environ.get('AIRFLOW_HOME', '/opt/airflow/')
 
 default_args = {
     'redshift_conn_id': 'redshift-ui-1',
+    'owner': 'airflow',
+    'depends_on_past': False,
+    'retries': 1,
 }
 
-with DAG(dag_id="redshift", 
+with DAG(dag_id="create_staging_table_dag", 
          start_date=datetime(2023, 1, 1), 
          schedule_interval=None, 
          default_args=default_args) as dag:
