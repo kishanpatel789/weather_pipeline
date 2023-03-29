@@ -1,14 +1,7 @@
 from airflow import DAG
-# from airflow.operators.bash import BashOperator
-# from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.operators.redshift import RedshiftSQLOperator
-
-# from airflow.models.connection import Connection
 from datetime import datetime
 import os
-
-# BUCKET = os.environ.get('AWS_BUCKET')
-AIRFLOW_HOME = os.environ.get('AIRFLOW_HOME', '/opt/airflow/')
 
 default_args = {
     'redshift_conn_id': 'redshift-ui-1',
@@ -17,7 +10,7 @@ default_args = {
     'retries': 1,
 }
 
-with DAG(dag_id="s3_to_redshift_dag", 
+with DAG(dag_id="s3_to_redshift_dim_dag", 
          start_date=datetime(2023, 1, 1), 
          schedule_interval=None, 
          default_args=default_args) as dag:
@@ -95,8 +88,5 @@ with DAG(dag_id="s3_to_redshift_dag",
         sql=COPY_STATION_QUERY,
     )
 
-    # transfer_precipitation_task
-
-    # [create_state_task, create_station_task] >> [copy_state_task, copy_station_task]
     create_state_task >> truncate_state_task >> copy_state_task
     create_station_task >> truncate_station_task >> copy_station_task
