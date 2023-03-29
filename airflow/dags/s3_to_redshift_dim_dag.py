@@ -1,7 +1,6 @@
 from airflow import DAG
 from airflow.providers.amazon.aws.operators.redshift import RedshiftSQLOperator
 from datetime import datetime
-import os
 
 default_args = {
     'redshift_conn_id': 'redshift-ui-1',
@@ -10,7 +9,7 @@ default_args = {
     'retries': 1,
 }
 
-with DAG(dag_id="s3_to_redshift_dim_dag", 
+with DAG(dag_id="02_s3_to_redshift_dim_dag", 
          start_date=datetime(2023, 1, 1), 
          schedule_interval=None, 
          default_args=default_args) as dag:
