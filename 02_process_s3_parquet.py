@@ -186,6 +186,6 @@ df_out = (df_out.replace({-9999: None}, subset=['Val'])
 df_out = df_out.withColumn('year', year('DATE'))
 
 # write parquet files
-df_out.coalesce(100).write.mode('overwrite').parquet('s3a://weather-data-kpde/out/')
+df_out.coalesce(100).write.mode('overwrite').parquet('s3a://weather-data-kpde/out/precipitation')
 
 spark.stop()
