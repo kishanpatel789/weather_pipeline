@@ -50,4 +50,38 @@ with DAG(dag_id="03_s3_to_redshift_fact_dag",
         sql=COPY_PRECIP_QUERY,
     )
 
-    create_precip_task >> truncate_precip_task >> copy_precip_task
+    # create staging table
+    DELETE_STG_TABLE_QUERY = """
+        DROP TABLE IF EXISTS stg_prep_by_year_state
+    """
+
+    CREATE_STG_TABLE_QUERY = """
+    CREATE TABLE stg_prep_by_year_state AS (
+        SELECT s.state
+        ,st.state_name
+        ,date_trunc('year', p.date) yr
+        ,SUM(p.Val) AS prep_total
+        ,COUNT(DISTINCT p.station) AS station_count
+        FROM fact_hourly_precipitation p 
+        LEFT JOIN dim_station s
+            ON p.station = s.stnid
+        LEFT JOIN dim_state st 
+            ON s.state = st.state_abbr
+        GROUP BY s.state
+        ,st.state_name
+        ,date_trunc('year', p.date)
+    )
+    """
+
+    delete_stg_table_task = RedshiftSQLOperator(
+        task_id='delete_stg_table_task', 
+        sql=DELETE_STG_TABLE_QUERY,
+    )
+
+    create_stg_table_task = RedshiftSQLOperator(
+        task_id='create_stg_table_task', 
+        sql=CREATE_STG_TABLE_QUERY,
+    )
+
+    create_precip_task >> truncate_precip_task >> copy_precip_task >>\
+    delete_stg_table_task >> create_stg_table_task
