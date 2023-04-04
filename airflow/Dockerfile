@@ -1,13 +1,17 @@
 
-FROM apache/airflow:2.2.3 
+FROM apache/airflow:2.3.3 
 
 ENV AIRFLOW_HOME=/opt/airflow 
 
-USER root 
-RUN apt-get update -qq && apt-get install vim -qqq && apt-get install unzip
+USER $AIRFLOW_UID
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+COPY 02_process_s3_parquet.py .
+
+USER root 
+RUN apt-get update -qq && apt-get install vim -qqq && apt-get install unzip
 
 SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
 
