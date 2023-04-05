@@ -65,11 +65,13 @@ x-airflow-common:
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     AWS_BUCKET: weather-data-kpde
     AWS_PROFILE: service_wp
+    AWS_SHARED_CREDENTIALS_FILE: /usr/local/airflow/.aws/credentials
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-    - ~/.aws:/home/airflow/.aws:ro
+    # - ~/.aws:/home/airflow/.aws:ro
+    - ~/.aws:/usr/local/airflow/.aws:ro
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on

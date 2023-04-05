@@ -1,14 +1,8 @@
 from airflow import DAG
 from airflow.hooks.S3_hook import S3Hook
 from airflow.operators.python import PythonOperator
-from airflow.providers.amazon.aws.operators.emr import (
-    EmrAddStepsOperator,
-    EmrCreateJobFlowOperator,
-    EmrModifyClusterOperator,
-    EmrTerminateJobFlowOperator,
-    EmrStepSensor,
-    EmrJobFlowSensor
-)
+from airflow.providers.amazon.aws.operators.emr import EmrCreateJobFlowOperator
+from airflow.providers.amazon.aws.sensors.emr import EmrJobFlowSensor
 import os
 from datetime import datetime
 
@@ -85,8 +79,8 @@ with DAG(
     create_emr_cluster_task = EmrCreateJobFlowOperator(
         task_id="create_emr_cluster_task",
         job_flow_overrides=JOB_FLOW_OVERRIDES,
-        # aws_conn_id="aws_default",
-        # emr_conn_id="emr_default",
+        aws_conn_id=None,
+        emr_conn_id=None,
     )
 
     # last_step = len(SPARK_STEPS) - 1 # this value will let the sensor know the last step to watch
