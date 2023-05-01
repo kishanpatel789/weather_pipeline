@@ -1,17 +1,101 @@
 from airflow import DAG
 from airflow.hooks.S3_hook import S3Hook
 from airflow.operators.python import PythonOperator
-from airflow.providers.amazon.aws.operators.emr import EmrCreateJobFlowOperator
-from airflow.providers.amazon.aws.sensors.emr import EmrJobFlowSensor
 import os
 from datetime import datetime
+import boto3
 
 BUCKET = os.environ.get('AWS_BUCKET')
+client = boto3.client('emr')
+
 
 # push .py file to S3
 def local_to_s3(filename, key, bucket_name=BUCKET):
     s3 = S3Hook()
     s3.load_file(filename=filename, bucket_name=bucket_name, replace=True, key=key)
+
+def run_job_flow():
+    response = client.run_job_flow(
+        Name='emr-cluster-kp-0425-boto-2',
+        ReleaseLabel='emr-6.10.0',
+        Instances={
+            'InstanceGroups': [
+                {
+                    'Name': 'inst1',
+                    'Market': 'ON_DEMAND',
+                    'InstanceRole': 'MASTER',
+                    'InstanceType': 'm5.xlarge',
+                    'InstanceCount': 1,
+                },
+            ],
+            'KeepJobFlowAliveWhenNoSteps': False,
+            'TerminationProtected': False,
+            'Ec2SubnetId': 'subnet-0179f300743d7583c',
+            'EmrManagedMasterSecurityGroup': 'sg-0b3081a1938c163a5',
+            'EmrManagedSlaveSecurityGroup': 'sg-0b3081a1938c163a5',
+            'AdditionalMasterSecurityGroups': [],
+            'AdditionalSlaveSecurityGroups': []
+        },
+        Steps=[
+        {
+            "Name": "run1",
+            "ActionOnFailure": "CANCEL_AND_WAIT",
+            "HadoopJarStep": {
+                "Jar": "command-runner.jar",
+                "Args": ["spark-submit", 
+                        "--deploy-mode", 
+                        "cluster",
+                        "s3://weather-data-kpde/code/02_process_s3_parquet.py"],
+            },
+        }
+        ],
+        Applications=[{'Name': 'Spark'}],
+        VisibleToAllUsers=True,
+        JobFlowRole='emr-ec2-role',
+        ServiceRole='emr-role',
+        Tags=[
+            {
+                'Key': 'for-use-with-amazon-emr-managed-policies',
+                'Value': 'true'
+            },
+        ],
+        AutoTerminationPolicy={
+            'IdleTimeout': 1*60*60
+        }
+    )   
+
+    return response
+
+cluster_id = response['JobFlowId']
+
+# get step id
+response = client.list_steps(
+    ClusterId=cluster_id,
+)
+step_id = response['Steps'][0]['Id']
+
+# is the cluster running yet?
+waiter = client.get_waiter('cluster_running')
+waiter.wait(
+    ClusterId=cluster_id
+)
+print("Cluster is supposedly running")
+
+
+
+# is the step complete yet?
+waiter = client.get_waiter('step_complete')
+waiter.wait(
+    ClusterId=cluster_id,
+    StepId=step_id,
+)
+print("Step is complete")
+
+waiter = client.get_waiter('cluster_terminated')
+waiter.wait(
+    ClusterId=ENTER_CLUSTER_ID
+)
+print("Cluster terminated")
 
 default_args = {
     'owner': 'airflow',
@@ -20,6 +104,9 @@ default_args = {
 }
 
 script_name = '02_process_s3_parquet.py'
+
+
+
 
 with DAG(
     dag_id='02_process_with_spark_dag',
