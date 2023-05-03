@@ -4,22 +4,29 @@ from airflow.operators.python import PythonOperator
 import os
 from datetime import datetime
 import boto3
+import logging 
+
+logger = logging.getLogger(__name__)
+
+# TODO: refactor varaibles in run_job_flow into constants
 
 BUCKET = os.environ.get('AWS_BUCKET')
 SCRIPT_NAME = '02_process_s3_parquet.py'
-# S3_PREFIX
-client = boto3.client('emr')
-today_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+S3_KEY = f"code/{SCRIPT_NAME}"
+RUN_TIME = datetime.now().strftime('%Y%m%d_%H%M%S')
 
+client = boto3.client('emr')
 
 # push .py file to S3
 def local_to_s3(filename, key, bucket_name=BUCKET):
     s3 = S3Hook()
     s3.load_file(filename=filename, bucket_name=bucket_name, replace=True, key=key)
+    logger.info(f'File {filename} uploaded to {bucket_name}/{key}.')
 
-def run_job_flow():
+def run_job_flow(dt_str, bucket_name, key):
+    # initiate cluster creation and job flow
     response = client.run_job_flow(
-        Name=f'emr-cluster-kp-boto-{today_str}',
+        Name=f'emr-cluster-kp-boto-{dt_str}',
         ReleaseLabel='emr-6.10.0',
         Instances={
             'InstanceGroups': [
@@ -48,7 +55,7 @@ def run_job_flow():
                 "Args": ["spark-submit", 
                         "--deploy-mode", 
                         "cluster",
-                        "s3://weather-data-kpde/code/02_process_s3_parquet.py"],
+                        f"s3://{bucket_name}/{key}"],
             },
         }
         ],
@@ -67,47 +74,51 @@ def run_job_flow():
         }
     )   
 
-    return response
+    # get cluster id
+    cluster_id = response['JobFlowId']
 
-cluster_id = response['JobFlowId']
+    # get step id
+    response = client.list_steps(
+        ClusterId=cluster_id,
+    )
+    step_id = response['Steps'][0]['Id']
 
-# get step id
-response = client.list_steps(
-    ClusterId=cluster_id,
-)
-step_id = response['Steps'][0]['Id']
+    logger.info(f'Cluster {cluster_id} is being initialized. Will execute step {step_id} when ready.')
 
-# is the cluster running yet?
-waiter = client.get_waiter('cluster_running')
-waiter.wait(
-    ClusterId=cluster_id
-)
-print("Cluster is supposedly running")
+    # is the cluster running yet?
+    waiter = client.get_waiter('cluster_running')
+    waiter.wait(
+        ClusterId=cluster_id
+    )
+    logger.info(f"Cluster {cluster_id} is running.")
 
+    # is the step complete yet?
+    waiter = client.get_waiter('step_complete')
+    waiter.wait(
+        ClusterId=cluster_id,
+        StepId=step_id,
+    )
+    logger.info(f'Step {step_id} is complete.')
 
+    # start cluster termination
+    client.terminate_job_flows(
+        JobFlowIds=[cluster_id]
+    )  
+    logger.info(f'Beginning termination of cluster {cluster_id}')
 
-# is the step complete yet?
-waiter = client.get_waiter('step_complete')
-waiter.wait(
-    ClusterId=cluster_id,
-    StepId=step_id,
-)
-print("Step is complete")
+    # is the cluster termianted?
+    waiter = client.get_waiter('cluster_terminated')
+    waiter.wait(
+        ClusterId=cluster_id
+    )
+    logger.info(f'Cluster {cluster_id} is terminated.')
 
-waiter = client.get_waiter('cluster_terminated')
-waiter.wait(
-    ClusterId=ENTER_CLUSTER_ID
-)
-print("Cluster terminated")
 
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'retries': 1,
+    'retries': 0,
 }
-
-
-
 
 
 with DAG(
@@ -123,73 +134,21 @@ with DAG(
         task_id='upload_script_task',
         python_callable=local_to_s3,
         op_kwargs={
-            'filename': script_name,
-            'key': f'code/{script_name}',
+            'filename': SCRIPT_NAME,
+            'key': S3_KEY,
         },
     )
 
-    SPARK_STEPS = [
-    {
-        "Name": "run1",
-        "ActionOnFailure": "CANCEL_AND_WAIT",
-        "HadoopJarStep": {
-            "Jar": "command-runner.jar",
-            "Args": ["spark-submit", 
-                     "--deploy-mode", 
-                     "cluster",
-                     "s3://weather-data-kpde/code/02_process_s3_parquet.py"],
+    run_job_flow_task = PythonOperator(
+        task_id='run_job_flow_task',
+        python_callable=run_job_flow,
+        op_kwargs={
+            'dt_str': RUN_TIME,
+            'filename': SCRIPT_NAME,
+            'key': S3_KEY,
         },
-    }
-    ]
-
-    JOB_FLOW_OVERRIDES = {
-    "Name": "emr-cluster-kp",
-    "ReleaseLabel": "emr-6.9.0",
-    "Applications": [{"Name": "Spark"}],
-    "Instances": {
-        "InstanceGroups": [
-            {
-                "Name": "Primary node",
-                "Market": "ON_DEMAND",
-                "InstanceRole": "MASTER",
-                "InstanceType": "m5.xlarge",
-                "InstanceCount": 1,
-            },
-        ],
-        "KeepJobFlowAliveWhenNoSteps": False,
-        "TerminationProtected": False,
-    },
-    "Steps": SPARK_STEPS,
-    "JobFlowRole": "emr-ec2-role",
-    "ServiceRole": "emr-role",
-    }
-
-    # create cluster and run job
-    create_emr_cluster_task = EmrCreateJobFlowOperator(
-        task_id="create_emr_cluster_task",
-        job_flow_overrides=JOB_FLOW_OVERRIDES,
-        aws_conn_id=None,
-        emr_conn_id=None,
     )
 
-    # last_step = len(SPARK_STEPS) - 1 # this value will let the sensor know the last step to watch
-    # check_step_task = EmrStepSensor(
-    #     task_id="check_step_task",
-    #     job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster_task', key='return_value') }}",
-    #     step_id="{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')["
-    #     + str(last_step)
-    #     + "] }}",
-    # )
-
-    # check cluster state
-    check_job_flow_task = EmrJobFlowSensor(
-        task_id="check_job_flow_task", 
-        job_flow_id=create_emr_cluster_task.output,
-        target_states=['TERMINATING'],
-        failed_states=['TERMINATED_WITH_ERRORS'],
-    )
-
-
-    upload_script_task >> create_emr_cluster_task >> check_job_flow_task
+    upload_script_task >> run_job_flow_task
 
 
