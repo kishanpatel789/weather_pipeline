@@ -6,7 +6,10 @@ from datetime import datetime
 import boto3
 
 BUCKET = os.environ.get('AWS_BUCKET')
+SCRIPT_NAME = '02_process_s3_parquet.py'
+# S3_PREFIX
 client = boto3.client('emr')
+today_str = datetime.now().strftime('%Y%m%d_%H%M%S')
 
 
 # push .py file to S3
@@ -16,7 +19,7 @@ def local_to_s3(filename, key, bucket_name=BUCKET):
 
 def run_job_flow():
     response = client.run_job_flow(
-        Name='emr-cluster-kp-0425-boto-2',
+        Name=f'emr-cluster-kp-boto-{today_str}',
         ReleaseLabel='emr-6.10.0',
         Instances={
             'InstanceGroups': [
@@ -103,7 +106,6 @@ default_args = {
     'retries': 1,
 }
 
-script_name = '02_process_s3_parquet.py'
 
 
 
