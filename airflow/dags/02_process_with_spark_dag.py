@@ -22,8 +22,7 @@ def local_to_s3(filename, key, bucket_name=BUCKET):
 
 def run_job_flow(dt_str, bucket_name, key):
 
-    client = boto3.client('emr')
-    # client = boto3.session.Session(profile_name='service_wp').client('emr')
+    client = boto3.client('emr', region_name='us-east-1')
 
     # initiate cluster creation and job flow
     response = client.run_job_flow(
