@@ -8,14 +8,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# TODO: refactor varaibles in run_job_flow into constants
-
 BUCKET = os.environ.get('AWS_BUCKET')
 SCRIPT_NAME = '02_process_s3_parquet.py'
 S3_KEY = f"code/{SCRIPT_NAME}"
 RUN_TIME = datetime.now().strftime('%Y%m%d_%H%M%S')
 
-client = boto3.client('emr')
 
 # push .py file to S3
 def local_to_s3(filename, key, bucket_name=BUCKET):
@@ -24,6 +21,10 @@ def local_to_s3(filename, key, bucket_name=BUCKET):
     logger.info(f'File {filename} uploaded to {bucket_name}/{key}.')
 
 def run_job_flow(dt_str, bucket_name, key):
+
+    client = boto3.client('emr')
+    # client = boto3.session.Session(profile_name='service_wp').client('emr')
+
     # initiate cluster creation and job flow
     response = client.run_job_flow(
         Name=f'emr-cluster-kp-boto-{dt_str}',
@@ -144,7 +145,7 @@ with DAG(
         python_callable=run_job_flow,
         op_kwargs={
             'dt_str': RUN_TIME,
-            'filename': SCRIPT_NAME,
+            'bucket_name': BUCKET,
             'key': S3_KEY,
         },
     )
