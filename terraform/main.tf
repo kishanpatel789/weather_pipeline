@@ -70,3 +70,12 @@ resource "aws_s3_bucket_lifecycle_configuration" "lifecycle_data_lake" {
 
 
 # redshift instance for data warehouse
+resource "aws_redshift_cluster" "redshift_warehouse" {
+  cluster_identifier = "redshift-kpde"
+  database_name      = "dev"
+  master_username    = "service_wp"
+  master_password    = "serviceWp1"
+  node_type          = "dc2.large"
+  cluster_type       = "single-node"
+  publicly_accessible = true
+}
