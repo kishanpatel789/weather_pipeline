@@ -2,6 +2,7 @@
 bash_scratch.txt
 .terraform*
 *.tfstate*
+*plan.tf
 notes.md
 test_file.txt 
 data
