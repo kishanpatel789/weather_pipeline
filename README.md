@@ -20,12 +20,31 @@ Objective: Develop a pipeline of weather data.
 - Docker is used to run a local implementation of Airflow
   - 4 dags
 - S3 serves as data lake of raw and processed data
-- EMR used to process raw precipitation data
+- EMR provides a compute resource to process raw precipitation data
 - Redshift serves as data warehouse with processed precipitation data and aggregated data mart table for analytics reportnig
 
-## How to Run
+## Setup Instructions
 - AWS
   - set up service account
-  - configure aws cli
+  - configure aws cli with service account as a profile
+  - Create redshift role "redshift-cluster-role" that has AmazonS3ReadOnlyAccess and AmazonRedshiftAllCommandsFullAccess policies
 - Terraform
-  - Update variables.tf (region, profile, bucket)
+  - Update variables.tf (region, profile, bucket, redshift_cluster_name, redshift_cluster_role)
+  - Execute terraform apply to create S3 bucket and redshift cluster
+- Airflow
+  - Update docker-compose.yaml environment variables under x-airflow-common:
+    - AWS_BUCKET
+    - AWS_PROFILE
+  - Build docker image and run
+  - Set up UI config for Redshift connector
+    - Connection Id = redshift-ui-1
+    - Connection Type = "Amazon Redshift"
+    - Host = 
+    - Schema = dev
+    - Login = 
+    - Password = 
+    - Port = 5439
+
+## How to Run
+- Execute DAGS in order
+  - 
