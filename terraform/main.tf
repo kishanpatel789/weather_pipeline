@@ -16,7 +16,6 @@ provider "aws" {
 }
 
 # s3 bucket for data lake
-# weather-data-kpde
 resource "aws_s3_bucket" "bucket_data_lake" {
   bucket        = var.bucket #"weather-data-kpde"
   force_destroy = true
@@ -78,5 +77,6 @@ resource "aws_redshift_cluster" "redshift_warehouse" {
   node_type           = "dc2.large"
   cluster_type        = "single-node"
   publicly_accessible = true
-  iam_roles           = [redshift_cluster_role]
+  skip_final_snapshot = true
+  iam_roles           = [var.redshift_cluster_role]
 }
