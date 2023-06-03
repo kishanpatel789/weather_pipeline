@@ -32,7 +32,7 @@ Project Start: 2023.01.20
   - Copy cleansed parquet files into Redshift cluster and build a fact table of hourly precipitation. 
   - Transfer two dimension tables summarizing state and station to Redshift cluster.
   - Create aggregated data mart table in Redshift that summarizes precipitation by year and state. 
-- 
+
 ## Setup Instructions
 - AWS
   - Create the following roles with AWS managed policies assigned:
